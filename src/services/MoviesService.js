@@ -29,4 +29,10 @@ export default {
     getLastCreatedMovies(nbrMovies) {
         return Api().get('/movies/lastcreated/' + nbrMovies)
     },
+    getEmptyMovies(nbrMovies) {
+        return Api().get('/movies/missingjaquette/' + nbrMovies)
+    },
+    postMovieJaquetteAndDateSortie(movies) {
+        return Api().post('/movies/missingjaquette', {body: movies})
+    },
 }

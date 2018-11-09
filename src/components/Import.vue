@@ -10,54 +10,85 @@
 
 		<h1>Importer:</h1>
 
-    <div class="form-inline">
-      <div class="form-group mb-2">
-        <label for="addMovies">Importer des films:</label>
-      </div>
-      <div class="form-group mb-2">
-        <input type="file" class="form-control-file" id="addMovies" multiple="multiple"  @change="processFiles($event)">
-      </div>
+    <div style="margin-bottom: 20px;"">
+      <b-nav pills>
+        <b-nav-item v-for="item in menus" :active="item.active" @click="swapMenu(item.id)">{{ item.label }}</b-nav-item>
+      </b-nav>
     </div>
 
-		<table class="table table-striped table-bordered">
-      <thead>
-        <tr>
-          <th>N°</th>
-          <th>Nom</th>
-          <th>Extension</th>
-          <th>Vu</th>
-          <th>Type</th>
-          <th>Disques durs</th>
-          <th>Date creation:</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-			  <tr v-for="file, index in files">
-          <td>{{ index + 1 }}</td>
-          <td><input class="form-control" type="text" v-model="file.name"></td>
-          <td>{{ file.extension }}</td>
-          <td>
-            <input class="form-check-input" type="checkbox" v-model="file.seen">
-          </td>
-          <td>
-            <select class="form-control" v-model="file.type">
-                <option v-for="type in types" :value="type.id_type">{{ type.type }}</option>
-            </select>
-          </td>
-          <td>
-            <select class="form-control" v-model="file.ddur">
-                <option v-for="ddur in ddurs" :value="ddur.id_ddur">{{ ddur.ddur }}</option>
-            </select>
-          </td>
-          <td>{{ convertDate((new Date(file.date_c)).toISOString()) }}</td>
-          <td>
-            <button class="btn btn-danger" @click="removeFile(file.numFile)">X</button>
-          </td>
-        </tr>
-      </tbody>
-		</table>
-    <button class="btn btn-success" @click="submitForm" :disabled="importedFiles.length == 0">Importer</button>
+    <div v-if="menus[0].active">
+      <div class="form-inline">
+        <div class="form-group mb-2">
+          <label for="addMovies">Importer des films:</label>
+        </div>
+        <div class="form-group mb-2">
+          <input type="file" class="form-control-file" id="addMovies" multiple="multiple"  @change="processFiles($event)">
+        </div>
+      </div>
+
+  		<table class="table table-striped table-bordered">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Titre</th>
+            <th>Extension</th>
+            <th>Vu</th>
+            <th>Type</th>
+            <th>Disques durs</th>
+            <th>Date creation</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+  			  <tr v-for="file, index in files">
+            <td>{{ index + 1 }}</td>
+            <td><input class="form-control" type="text" v-model="file.name"></td>
+            <td>{{ file.extension }}</td>
+            <td>
+              <input class="form-check-input" type="checkbox" v-model="file.seen">
+            </td>
+            <td>
+              <select class="form-control" v-model="file.type">
+                  <option v-for="type in types" :value="type.id_type">{{ type.type }}</option>
+              </select>
+            </td>
+            <td>
+              <select class="form-control" v-model="file.ddur">
+                  <option v-for="ddur in ddurs" :value="ddur.id_ddur">{{ ddur.ddur }}</option>
+              </select>
+            </td>
+            <td>{{ convertDate((new Date(file.date_c)).toISOString()) }}</td>
+            <td>
+              <button class="btn btn-danger" @click="removeFile(file.numFile)">X</button>
+            </td>
+          </tr>
+        </tbody>
+  		</table>
+      <button class="btn btn-success" @click="submitForm" :disabled="importedFiles.length == 0">Importer</button>
+    </div>
+
+    <div v-if="menus[1].active">
+      <button class="btn btn-success" @click="getEmptyMovies">Refresh</button>
+      <table class="table table-striped table-bordered">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Titre</th>
+            <th>Date Sortie</th>
+            <th>Jaquette</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="film, index in emptyFilms">
+            <td>{{ index + 1 }}</td>
+            <td>{{ film.titre }}</td>
+            <td><input class="form-control" type="text" v-model="film.annee_sortie"></td>
+            <td><input class="form-control" type="text" v-model="film.jaquette"></td>
+          </tr>
+        </tbody>
+      </table>
+      <button class="btn btn-success" @click="importEmptyForm" :disabled="emptyFilms.length == 0">Importer</button>
+    </div>
 	</div>
 </template>
 
@@ -76,6 +107,18 @@ export default {
       ddurs: [],
       types: [],
       defaultType: 1,
+      emptyFilms: [],
+      menus: [
+        {
+          id: "new-films",
+          active: true,
+          label: "Nouveaux Films",
+        },{
+          id: "fill-jaquette-date-film",
+          active: false,
+          label: "Remplir Film",
+        },
+      ],
       alert: {
         message: "",
         status: "",
@@ -89,6 +132,8 @@ export default {
     this.getAllDdurs();
 
     this.getAllTypes();
+
+    this.getEmptyMovies();
   },
   methods: {
     getAllDdurs: function() {
@@ -131,6 +176,13 @@ export default {
 
       this.files = myNewData;
     },
+    getEmptyMovies: function() {
+      MoviesService.getEmptyMovies(40)
+        .then(response => {
+          this.emptyFilms = response.data;
+        })
+        .catch(error => console.log(error))
+    },
     submitForm: function() {
       MoviesService.postMovies(this.files)
         .then(response => {
@@ -157,6 +209,30 @@ export default {
     },
     convertDate: function(dateString) {
         return DatesService.convertSqlDateToBasicOne(dateString);
+    },
+    swapMenu: function(selectedId) {
+      this.menus.forEach(item => {
+        if (item.id == selectedId) {
+          item.active = true;
+        } else {
+          item.active = false;
+        }
+      });
+    },
+    importEmptyForm: function() {
+      var sendList = this.emptyFilms.filter(film => (film.jaquette !== null || film.annee_sortie !== null));
+
+      MoviesService.postMovieJaquetteAndDateSortie(sendList)
+        .then(response => {
+          var filledMoviesIdList = [];
+
+          response.data.forEach(film => {
+            filledMoviesIdList.push(film.id_film)
+          });
+
+          this.emptyFilms = this.emptyFilms.filter(film => !filledMoviesIdList.includes(film.id_film));
+        })
+        .catch(error => console.log(error))
     },
   }
 }
