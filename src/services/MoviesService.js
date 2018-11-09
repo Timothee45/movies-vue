@@ -22,6 +22,9 @@ export default {
     postMovieGenres(idMovie, genres) {
         return Api().post('/movies/' + idMovie + '/genres', {body: genres})
     },
+    postMovieMissingGenres(movies) {
+        return Api().post('/movies/genres', {body: movies})
+    },
     updateMovie(movie) {
     	console.log(movie);
     	return Api().put('/movies', {body: movie})
@@ -32,7 +35,10 @@ export default {
     getEmptyMovies(nbrMovies) {
         return Api().get('/movies/missingjaquette/' + nbrMovies)
     },
+    getMissingGenresMovies(nbrMovies) {
+        return Api().get('/movies/missinggenres/' + nbrMovies)
+    },
     postMovieJaquetteAndDateSortie(movies) {
-        return Api().post('/movies/missingjaquette', {body: movies})
+        return Api().put('/movies/missingjaquette', {body: movies})
     },
 }
