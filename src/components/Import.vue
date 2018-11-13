@@ -81,8 +81,11 @@
         <tbody>
           <tr v-for="film, index in emptyFilms">
             <td>{{ index + 1 }}</td>
-            <td>{{ film.titre }}</td>
-            <td><input class="form-control" type="text" v-model="film.annee_sortie"></td>
+            <td>
+              <img class="film-vignette" :src="film.jaquette">
+              {{ film.titre }}
+            </td>
+            <td><input class="form-control" type="text" v-model="film.annee_sortie" placeholder="yyyy-mm-jj"></td>
             <td><input class="form-control" type="text" v-model="film.jaquette"></td>
           </tr>
         </tbody>
@@ -91,6 +94,34 @@
     </div>
 
     <div v-if="menus[2].active">
+      <button class="btn btn-success" @click="getMissingGenresMovies">Refresh</button>
+      <table class="table table-striped table-bordered">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Titre</th>
+            <th>Genre</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="film, index in missingGenresMovies">
+            <td>{{ index + 1 }}</td>
+            <td>
+              <img class="film-vignette" :src="film.jaquette">
+              {{ film.titre }}
+            </td>
+            <td>
+              <select class="form-control" v-model="film.id_genre">
+                <option v-for="genre in genres" :value="genre.id_genre">{{ genre.genre }}</option>
+              </select>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <button class="btn btn-success" @click="importWithoutGenresForm" :disabled="missingGenresMovies.length == 0">Importer</button>
+    </div>
+
+    <div v-if="menus[3].active">
       <button class="btn btn-success" @click="getEmptyPersonnes">Refresh</button>
       <table class="table table-striped table-bordered">
         <thead>
@@ -130,6 +161,7 @@ import DatesService from '../services/DatesService';
 import TypesService from '../services/TypesService';
 import PersonnesService from '../services/PersonnesService';
 import NationalitesService from '../services/NationalitesService';
+import GenresService from '../services/GenresService';
 
 export default {
   name: 'addMovies',
@@ -138,6 +170,8 @@ export default {
       importedFiles: [],
       files: [],
       ddurs: [],
+      genres: [],
+      missingGenresMovies: [],
       types: [],
       defaultType: 1,
       emptyFilms: [],
@@ -153,9 +187,13 @@ export default {
           active: false,
           label: "Remplir Film",
         },{
+          id: "fill-sans-genre",
+          active: false,
+          label: "Films sans genres",
+        },{
           id: "fill-personnes-infos",
           active: false,
-          label: "Remplir Personnes",
+          label: "Ajout Infos",
         },
       ],
       alert: {
@@ -172,11 +210,15 @@ export default {
 
     this.getAllTypes();
 
+    this.getAllGenres();
+
     this.getEmptyMovies();
 
     this.getEmptyPersonnes();
 
     this.getAllNationalites();
+
+    this.getMissingGenresMovies();
   },
   methods: {
     getAllDdurs: function() {
@@ -195,6 +237,16 @@ export default {
           console.log(response);
           this.nationalities = response.data;
         })
+        .catch(error => console.log(error))
+    },
+    getAllGenres: function() {
+      GenresService.getAllGenres()
+        .then(response => this.genres = response.data)
+        .catch(error => console.log(error))
+    },
+    getMissingGenresMovies: function() {
+      MoviesService.getMissingGenresMovies(40)
+        .then(response => this.missingGenresMovies = response.data)
         .catch(error => console.log(error))
     },
     processFiles: function(event) {
@@ -300,6 +352,7 @@ export default {
 
       MoviesService.postMovieJaquetteAndDateSortie(sendList)
         .then(response => {
+          console.log(response);
           var filledMoviesIdList = [];
 
           response.data.forEach(film => {
@@ -310,10 +363,36 @@ export default {
         })
         .catch(error => console.log(error))
     },
+    importWithoutGenresForm: function() {
+      var sendMovies = [];
+
+      this.missingGenresMovies.forEach(film => {
+        if (film.id_genre) {
+          sendMovies.push({
+            "id_film": film.id_film,
+            "id_genre": film.id_genre,
+          });
+        }
+      });
+
+      MoviesService.postMovieMissingGenres(sendMovies)
+        .then(response => {
+          var filledMoviesIdList = [];
+
+          response.data.forEach(film => {
+            filledMoviesIdList.push(film.id_film)
+          });
+
+          this.missingGenresMovies = this.missingGenresMovies.filter(film => !filledMoviesIdList.includes(film.id_film));
+        })
+        .catch(error => console.log(error))
+    }
   }
 }
 </script>
 
 <style>
-
+  .film-vignette {
+    height: 50px;
+  }
 </style>
