@@ -136,7 +136,10 @@
         </thead>
         <tbody>
           <tr v-for="personne, index in emptyPersonnes">
-            <td>{{ index + 1 }}</td>
+            <td>
+              {{ index + 1 }}
+              <img class="film-vignette" :src="personne.photo_profil">
+            </td>
             <td><input class="form-control" type="text" v-model="personne.photo_profil"></td>
             <td><input class="form-control" type="text" v-model="personne.prenom"></td>
             <td><input class="form-control" type="text" v-model="personne.nom"></td>
@@ -234,7 +237,6 @@ export default {
     getAllNationalites: function() {
       NationalitesService.getAllNationalites()
         .then(response => {
-          console.log(response);
           this.nationalities = response.data;
         })
         .catch(error => console.log(error))
