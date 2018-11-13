@@ -120,6 +120,37 @@
       </table>
       <button class="btn btn-success" @click="importWithoutGenresForm" :disabled="missingGenresMovies.length == 0">Importer</button>
     </div>
+
+    <div v-if="menus[3].active">
+      <button class="btn btn-success" @click="getEmptyPersonnes">Refresh</button>
+      <table class="table table-striped table-bordered">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Photo Profil</th>
+            <th>Prenom</th>
+            <th>Nom</th>
+            <th>Nationalité</th>
+            <th>Date Naissance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="personne, index in emptyPersonnes">
+            <td>{{ index + 1 }}</td>
+            <td><input class="form-control" type="text" v-model="personne.photo_profil"></td>
+            <td><input class="form-control" type="text" v-model="personne.prenom"></td>
+            <td><input class="form-control" type="text" v-model="personne.nom"></td>
+            <td>
+              <select class="form-control" v-model="personne.id_nationalite">
+                  <option v-for="nationality in nationalities" :value="nationality.id_nationalite">{{ nationality.nationalite }}</option>
+              </select>
+            </td>
+            <td><input class="form-control" type="text" v-model="personne.date_naissance" placeholder="yyyy-mm-dd"></td>
+          </tr>
+        </tbody>
+      </table>
+      <button class="btn btn-success" @click="importEmptyPersonnesForm" :disabled="emptyPersonnes.length == 0">Importer</button>
+    </div>
 	</div>
 </template>
 
@@ -128,6 +159,8 @@ import DdursService from '../services/DdursService';
 import MoviesService from '../services/MoviesService';
 import DatesService from '../services/DatesService';
 import TypesService from '../services/TypesService';
+import PersonnesService from '../services/PersonnesService';
+import NationalitesService from '../services/NationalitesService';
 import GenresService from '../services/GenresService';
 
 export default {
@@ -142,6 +175,8 @@ export default {
       types: [],
       defaultType: 1,
       emptyFilms: [],
+      emptyPersonnes: [],
+      nationalities: [],
       menus: [
         {
           id: "new-films",
@@ -150,11 +185,15 @@ export default {
         },{
           id: "fill-jaquette-date-film",
           active: false,
-          label: "Ajout Infos",
+          label: "Remplir Film",
         },{
           id: "fill-sans-genre",
           active: false,
           label: "Films sans genres",
+        },{
+          id: "fill-personnes-infos",
+          active: false,
+          label: "Ajout Infos",
         },
       ],
       alert: {
@@ -175,6 +214,10 @@ export default {
 
     this.getEmptyMovies();
 
+    this.getEmptyPersonnes();
+
+    this.getAllNationalites();
+
     this.getMissingGenresMovies();
   },
   methods: {
@@ -186,6 +229,14 @@ export default {
     getAllTypes: function() {
       TypesService.getAllTypes()
         .then(response => this.types = response.data)
+        .catch(error => console.log(error))
+    },
+    getAllNationalites: function() {
+      NationalitesService.getAllNationalites()
+        .then(response => {
+          console.log(response);
+          this.nationalities = response.data;
+        })
         .catch(error => console.log(error))
     },
     getAllGenres: function() {
@@ -235,14 +286,39 @@ export default {
         })
         .catch(error => console.log(error))
     },
+    getEmptyPersonnes: function() {
+      PersonnesService.getPersonneMissingInfos(40)
+        .then(response => {
+          this.emptyPersonnes = response.data;
+        })
+        .catch(error => console.log(error))
+    },
     submitForm: function() {
       MoviesService.postMovies(this.files)
         .then(response => {
-          console.log(response.data);
           this.showAlert(response.data.data, "success");
           this.resetFiles();
         })
         .catch(error => this.showAlert(error.data, "danger"))
+    },
+    importEmptyPersonnesForm: function() {
+      var sendList = this.emptyPersonnes.filter(personne => 
+        (personne.prenom !== null || 
+        personne.nom !== null ||
+        personne.date_naissance !== null ||
+        personne.photo_profil !== null));
+
+      PersonnesService.postPersonnesPhotoAndDate(sendList)
+        .then(response => {
+          var filledPerseonnesIdList = [];
+
+          response.data.forEach(personne => {
+            filledPerseonnesIdList.push(personne.id_personne)
+          });
+
+          this.emptyPersonnes = this.emptyPersonnes.filter(personne => !filledPerseonnesIdList.includes(personne.id_personne));
+        })
+        .catch(error => console.log(error))
     },
     resetFiles () {
       this.importedFiles = [];

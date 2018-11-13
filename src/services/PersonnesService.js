@@ -10,6 +10,9 @@ export default {
     getAllMoviesOfOnePerson(id) {
         return Api().get('/personnes/' + id + '/movies')
     },
+    getPersonneMissingInfos(nbrPersonnes) {
+        return Api().get('/personnes/missinginfos/' + nbrPersonnes)
+    },
     updatePersonne(personne) {
         return Api().put('/personnes', {body: personne})
     },
@@ -17,7 +20,9 @@ export default {
         return Api().post('/personnes', {body: personne})
     },
     addMoviesToAPersonne(id, movies) {
-        console.log(movies);
         return Api().post('/personnes/' + id + '/movies', {body: movies})
+    },
+    postPersonnesPhotoAndDate(personnes) {
+        return Api().post('/personnes/missinginfos', {body: personnes})
     },
 }
